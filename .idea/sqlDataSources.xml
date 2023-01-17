@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="DdlMappings">
+    <mapping uuid="6eca026d-a9b5-4ffa-aae8-54e8126b2054" name="MongoDB Mapping">
+      <data-sources db="0fed48fd-812a-4b8c-8cd6-edce3bb57473" />
+    </mapping>
+  </component>
+</project>
