@@ -403,7 +403,6 @@ public class Main {
             else{
                 System.out.println("Vale, veo que no quieres hacer nada, no pasa nada, nos veremos las caras en otro momento.");
             }
-
         }
     }
 }
