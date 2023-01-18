@@ -7,7 +7,6 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
 import org.bson.Document;
-import org.bson.conversions.Bson;
 
 import java.util.*;
 
@@ -23,10 +22,9 @@ public class Main {
         int num = 0;
         Document sort = new Document("_id",-1);
         FindIterable itDoc = mco.find().limit(1).sort(sort).projection(Projections.exclude("nombre","estudio","anio"));
-        Iterator it = itDoc.iterator();
-        while(it.hasNext()){
-            sort = (Document)it.next();
-             num = sort.getInteger("_id");
+        for (Object o : itDoc) {
+            sort = (Document) o;
+            num = sort.getInteger("_id");
         }
         return num;
     }
@@ -44,21 +42,11 @@ public class Main {
             askMenu();
             menu = askNumber('m');
             switch (menu) {
-                case 1 -> {
-                    alta();
-                }
-                case 2 -> {
-                    edit();
-                }
-                case 3 -> {
-                    delete();
-                }
-                case 4 -> {
-                    search();
-                }
-                case 5 -> {
-                    specialedit();
-                }
+                case 1 -> alta();
+                case 2 -> edit();
+                case 3 -> delete();
+                case 4 -> search();
+                case 5 -> specialedit();
                 case 0 -> {
                     mc.close();
                     System.exit(0);
@@ -138,12 +126,8 @@ public class Main {
                 5.- Mostrar la media de años de los juegos en la base de datos""");
         int menu = askNumber('m');
         switch(menu){
-            case 1 -> {
-                muestraVideojuegos("_id");
-            }
-            case 2 -> {
-                muestraVideojuegos("anio");
-            }
+            case 1 -> muestraVideojuegos("_id");
+            case 2 -> muestraVideojuegos("anio");
             case 3 -> {
                 Document filtro = new Document("anio",new Document("$gt",2000));
                 FindIterable docIt = mco.find(filtro);
@@ -171,10 +155,8 @@ public class Main {
                                 Accumulators.min("minAnio","$anio")
                         )
                 ));
-                Iterator it = result.iterator();
-                while(it.hasNext()){
-                    Document doc = (Document)it.next();
-                    System.out.println("El juevo más nuevo fué lanzado en el año: "+doc.getInteger("maxAnio")+" y el más antiguo el año: "+doc.getInteger("minAnio"));
+                for (Document doc : result) {
+                    System.out.println("El juevo más nuevo fué lanzado en el año: " + doc.getInteger("maxAnio") + " y el más antiguo el año: " + doc.getInteger("minAnio"));
                 }
             }
             case 5 -> {
@@ -186,15 +168,11 @@ public class Main {
                                 Accumulators.avg("edadPromedio", "$tiempo_lanzado")
                         )
                 ));
-                Iterator it = result.iterator();
-                while(it.hasNext()){
-                    Document doc = (Document)it.next();
-                    System.out.println("La edad promedio de los juegos introducidos es: "+doc.getDouble("edadPromedio"));
+                for (Document doc : result) {
+                    System.out.println("La edad promedio de los juegos introducidos es: " + doc.getDouble("edadPromedio"));
                 }
             }
-            default -> {
-                System.out.println("Vale, veo que no quieres hacer nada, no pasa nada, nos veremos las caras en otro momento.");
-            }
+            default -> System.out.println("Vale, veo que no quieres hacer nada, no pasa nada, nos veremos las caras en otro momento.");
         }
     }
 
@@ -266,12 +244,8 @@ public class Main {
         while(check){
             try {
                 switch (opc) {
-                    case 't' -> {
-                        System.out.println("Por favor, introduce el título del videojuego");
-                    }
-                    case 'e' -> {
-                        System.out.println("Por favor, introduce el estudio desarrollador del videojuego");
-                    }
+                    case 't' -> System.out.println("Por favor, introduce el título del videojuego");
+                    case 'e' -> System.out.println("Por favor, introduce el estudio desarrollador del videojuego");
                 }
                 str = scStr.nextLine();
                 if (str.length()>0){
@@ -280,12 +254,8 @@ public class Main {
             }
             catch(Exception e){
                 switch (opc) {
-                    case 't' -> {
-                        System.out.println("Por favor, introduce un título dentro de lo razonable ;)");
-                    }
-                    case 'e' -> {
-                        System.out.println("Por favor, introduce un estudio dentro de lo razonable ;)");
-                    }
+                    case 't' -> System.out.println("Por favor, introduce un título dentro de lo razonable ;)");
+                    case 'e' -> System.out.println("Por favor, introduce un estudio dentro de lo razonable ;)");
                 }
 
             }
