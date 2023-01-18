@@ -23,17 +23,22 @@ public class Main {
     static MongoCollection mco;
     static int cont = 0;
 
-    public static void main(String[] args) {
-        mc = new MongoClient();
-        mdb = mc.getDatabase("videojuegos");
-        mco = mdb.getCollection("videojuego");
+    private static int checkItems(){
+        int num = 0;
         Document sort = new Document("_id",-1);
         FindIterable itDoc = mco.find().limit(1).sort(sort).projection(Projections.exclude("nombre","estudio","anio"));
         Iterator it = itDoc.iterator();
         while(it.hasNext()){
             sort = (Document)it.next();
-            cont = sort.getInteger("_id");
+             num = sort.getInteger("_id");
         }
+        return num;
+    }
+    public static void main(String[] args) {
+        mc = new MongoClient();
+        mdb = mc.getDatabase("videojuegos");
+        mco = mdb.getCollection("videojuego");
+        cont = checkItems();
         /*mc = new MongoClient();
         mdb = mc.getDatabase("videojuegos");
         mco = mdb.getCollection("videojuego");*/
@@ -93,10 +98,13 @@ public class Main {
     }
 
     private static void delete(){
-        muestraVideojuegos();
-        System.out.println("¿Qué videojuego quieres borrar?");
-        int delete = askNumber('d');
-        if(delete != 0){
+        if(checkItems() == 0){
+            System.out.println("No hay videojuegos para eliminar, introduce uno primero.");
+        }
+        else{
+            muestraVideojuegos();
+            System.out.println("¿Qué videojuego quieres borrar?");
+            int delete = askNumber('d');
             if(checkIfExists(delete)){
                 mco.deleteOne(Filters.eq("_id",delete));
                 System.out.println("Borrado satisfactoriamente.");
@@ -105,6 +113,8 @@ public class Main {
                 System.out.println("NO EXISTE ESE ID, NO ME HAGAS PERDER EL TIEMPO, BRIBÓN");
             }
         }
+
+
     }
 
     private static boolean checkIfExists(int find){
@@ -160,18 +170,69 @@ public class Main {
 
     private static Document createVideojuego(){
         cont++;
-        System.out.println("Introduce el nombre del videojuego");
-        String nombre = scStr.nextLine();
-        System.out.println("Introduce el estudio que desarrolló el videojuego");
-        String estudio = scStr.nextLine();
-        System.out.println("Introduce el año de lanzamiento del videojuego");
-        int anio = scNum.nextInt();
+        String nombre = checkStr('t');
+        String estudio = checkStr('e');
+        int anio = checkInt();
         Videojuego v1 = new Videojuego(cont,nombre,estudio,anio);
         Document videojuego = new Document("_id",v1.getId())
                 .append("nombre",v1.getNombre())
                 .append("estudio",v1.getEstudio())
                 .append("anio",v1.getAnio());
         return videojuego;
+    }
+    private static String checkStr(char opc){
+        String str = "";
+        boolean check = true;
+        while(check){
+            try {
+                switch(opc){
+                    case 't':{
+                        System.out.println("Por favor, introduce el título del videojuego");
+                        break;
+                    }
+                    case 'e':{
+                        System.out.println("Por favor, introduce el estudio desarrollador del videojuego");
+                        break;
+                    }
+                }
+                str = scStr.nextLine();
+                if (str.length()>0){
+                    check = false;
+                }
+            }
+            catch(Exception e){
+                switch(opc){
+                    case 't':{
+                        System.out.println("Por favor, introduce un título dentro de lo razonable ;)");
+                        break;
+                    }
+                    case 'e':{
+                        System.out.println("Por favor, introduce un estudio dentro de lo razonable ;)");
+                        break;
+                    }
+                }
+
+            }
+        }
+        return str;
+    }
+    private static int checkInt(){
+        int num = 0;
+        while(num <1){
+            try {
+                System.out.println("Por favor, introduce el año de lanzamiento del videojuego");
+                num = scNum.nextInt();
+                if (num < 1) {
+                    System.out.println("Por favor, introduce un año dentro de lo razonable ;)");
+                }
+            }
+            catch(Exception e){
+                System.out.println("Por favor, introduce un año dentro de lo razonable ;)");
+                scNum.nextLine();
+            }
+        }
+        return num;
+
     }
     private static void alta(){
 
@@ -217,46 +278,54 @@ public class Main {
         }*/
     }
     private static void edit(){
-        boolean continuasion = true;
-        muestraVideojuegos();
-        System.out.println("¿Qué videojuego quieres editar?");
-        int edit = askNumber('e');
-        Document search = new Document("_id",edit);
-        FindIterable fiDoc = mco.find(search);
-        Iterator it = fiDoc.iterator();
-        Document videojuego = (Document)it.next();
-        Videojuego v1 = new Videojuego(videojuego.getInteger("_id"), videojuego.getString("nombre"),videojuego.getString("estudio"),videojuego.getInteger("anio"));
-        System.out.println(v1);
-        while(continuasion){
-            System.out.println("¿Qué quieres editar? [nombre],[estudio],[año],[salir]");
-            char ask = scStr.nextLine().toUpperCase().charAt(0);
-            switch(ask){
-                case 'N':{
-                    System.out.println("Introduce el nuevo nombre: ");
-                    String nombre = scStr.nextLine();
-                    mco.updateOne(search, Updates.set("nombre",nombre));
-                    break;
-                }
-                case 'E':{
-                    System.out.println("Introduce el nuevo estudio: ");
-                    String estudio = scStr.nextLine();
-                    mco.updateOne(search, Updates.set("estudio",estudio));
-                    break;
-                }
-                case 'A':{
-                    System.out.println("Introduce el nuevo año: ");
-                    int anio = scNum.nextInt();
-                    mco.updateOne(search, Updates.set("anio",anio));
-                    break;
-                }
-                case 'S':{
-                    continuasion = false;
-                }
-                default: {
-                    System.out.println();
-                    break;
+        if(checkItems() == 0){
+            System.out.println("No hay videojuegos para editar, introduce uno primero.");
+        }
+        else{
+            boolean continuasion = true;
+            muestraVideojuegos();
+            System.out.println("¿Qué videojuego quieres editar?");
+            int edit = askNumber('e');
+            if(edit != 0){
+                Document search = new Document("_id",edit);
+                FindIterable fiDoc = mco.find(search);
+                Iterator it = fiDoc.iterator();
+                Document videojuego = (Document)it.next();
+                Videojuego v1 = new Videojuego(videojuego.getInteger("_id"), videojuego.getString("nombre"),videojuego.getString("estudio"),videojuego.getInteger("anio"));
+                System.out.println(v1);
+                while(continuasion){
+                    System.out.println("¿Qué quieres editar? [nombre],[estudio],[año],[salir]");
+                    char ask = scStr.nextLine().toUpperCase().charAt(0);
+                    switch(ask){
+                        case 'N':{
+                            String nombre = checkStr('t');
+                            mco.updateOne(search, Updates.set("nombre",nombre));
+                            break;
+                        }
+                        case 'E':{
+                            String estudio = checkStr('e');
+                            mco.updateOne(search, Updates.set("estudio",estudio));
+                            break;
+                        }
+                        case 'A':{
+                            int anio = checkInt();
+                            mco.updateOne(search, Updates.set("anio",anio));
+                            break;
+                        }
+                        case 'S':{
+                            continuasion = false;
+                        }
+                        default: {
+                            System.out.println();
+                            break;
+                        }
+                    }
                 }
             }
+            else{
+                System.out.println("Vale, veo que no quieres hacer nada, no pasa nada, nos veremos las caras en otro momento.");
+            }
+
         }
     }
 }
