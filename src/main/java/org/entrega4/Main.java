@@ -1,19 +1,15 @@
 package org.entrega4;
 
 import com.mongodb.MongoClient;
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
-import com.mongodb.client.model.Updates;
+import com.mongodb.client.model.*;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
 
 public class Main {
     static Scanner scNum = new Scanner(System.in);
@@ -47,29 +43,27 @@ public class Main {
         while(true){
             askMenu();
             menu = askNumber('m');
-            switch(menu){
-                case 1:{
+            switch (menu) {
+                case 1 -> {
                     alta();
-                    break;
                 }
-                case 2:{
+                case 2 -> {
                     edit();
-                    break;
                 }
-                case 3:{
+                case 3 -> {
                     delete();
-                    break;
                 }
-                case 4:{
-                    //search();
-                    break;
+                case 4 -> {
+                    search();
                 }
-                case 0:{
+                case 5 -> {
+                    specialedit();
+                }
+                case 0 -> {
                     mc.close();
                     System.exit(0);
                 }
-                default:{
-                    break;
+                default -> {
                 }
             }
         }
@@ -94,7 +88,10 @@ public class Main {
         System.out.println("Elige una opción:\n" +
                 "1.- Añadir Videojuego\n" +
                 "2.- Editar Videojuego\n" +
-                "3.- Eliminar Videojuego");
+                "3.- Eliminar Videojuego\n" +
+                "4.- Acceder al Motor de Búsqueda\n" +
+                "5.- Edición especial\n" +
+                "0.- Salir");
     }
 
     private static void delete(){
@@ -102,8 +99,8 @@ public class Main {
             System.out.println("No hay videojuegos para eliminar, introduce uno primero.");
         }
         else{
-            muestraVideojuegos();
-            System.out.println("¿Qué videojuego quieres borrar?");
+            muestraVideojuegos("_id");
+            System.out.println("¿Qué videojuego quieres borrar? [0] Para salir");
             int delete = askNumber('d');
             if(checkIfExists(delete)){
                 mco.deleteOne(Filters.eq("_id",delete));
@@ -113,8 +110,92 @@ public class Main {
                 System.out.println("NO EXISTE ESE ID, NO ME HAGAS PERDER EL TIEMPO, BRIBÓN");
             }
         }
-
-
+    }
+    private static void specialedit(){
+        System.out.println("""
+                Ediciones especiales:
+                1.- Sumar 1 año al lanzamiento de todos los videojuegos
+                2.- Restar 2 años al lanzamiento de los videojuegos lanzados antes del año 2000""");
+        int menu = askNumber('m');
+        switch(menu){
+            case 1 ->{
+                Document filtro = new Document();
+                mco.updateMany(filtro,Updates.inc("anio",1));
+            }
+            case 2 ->{
+                Document filtro = new Document("anio",new Document("$lte",1990));
+                mco.updateMany(filtro,Updates.inc("anio",-2));
+            }
+        }
+    }
+    private static void search(){
+        System.out.println("""
+                Motor de Búsqueda:
+                1.- Mostrar todos los videojuegos ordenados por ID
+                2.- Mostrar todos los videojuegos ordenados por Año de lanzamiento
+                3.- Mostrar todos los videojuegos lanzados después del año 2000
+                4.- Mostrar el videojuego más antiguo y el más nuevo
+                5.- Mostrar la media de años de los juegos en la base de datos""");
+        int menu = askNumber('m');
+        switch(menu){
+            case 1 -> {
+                muestraVideojuegos("_id");
+            }
+            case 2 -> {
+                muestraVideojuegos("anio");
+            }
+            case 3 -> {
+                Document filtro = new Document("anio",new Document("$gt",2000));
+                FindIterable docIt = mco.find(filtro);
+                Iterator it = docIt.iterator();
+                int id,anio;
+                String nombre,estudio;
+                System.out.println("Lista de videojuegos: ");
+                for(int i = 1;it.hasNext();i++){
+                    Document videojuego = (Document)it.next();
+                    id = videojuego.getInteger("_id");
+                    nombre = videojuego.getString("nombre");
+                    estudio = videojuego.getString("estudio");
+                    anio = videojuego.getInteger("anio");
+                    System.out.println("Videojuego "+i+":" +
+                            "\nID: " +id+
+                            "\nNombre: "+nombre+
+                            "\nEstudio: "+estudio+
+                            "\nAño: "+anio+"\n");
+                }
+            }
+            case 4 -> {
+                AggregateIterable<Document> result = mco.aggregate(List.of(
+                        Aggregates.group(null,
+                                Accumulators.max("maxAnio", "$anio"),
+                                Accumulators.min("minAnio","$anio")
+                        )
+                ));
+                Iterator it = result.iterator();
+                while(it.hasNext()){
+                    Document doc = (Document)it.next();
+                    System.out.println("El juevo más nuevo fué lanzado en el año: "+doc.getInteger("maxAnio")+" y el más antiguo el año: "+doc.getInteger("minAnio"));
+                }
+            }
+            case 5 -> {
+                AggregateIterable<Document> result = mco.aggregate(Arrays.asList(
+                        Aggregates.project(Projections.fields(
+                                Projections.computed("tiempo_lanzado", new Document("$subtract", Arrays.asList(2023, "$anio")))
+                        )),
+                        Aggregates.group(null,
+                                Accumulators.avg("edadPromedio", "$tiempo_lanzado")
+                        )
+                ));
+                Iterator it = result.iterator();
+                while(it.hasNext()){
+                    Document doc = (Document)it.next();
+                    System.out.println("La edad promedio de los juegos introducidos es: "+doc.getDouble("edadPromedio"));
+                }
+            }
+            default -> {
+                System.out.println("Vale, veo que no quieres hacer nada, no pasa nada, nos veremos las caras en otro momento.");
+            }
+        }
     }
 
     private static boolean checkIfExists(int find){
@@ -164,7 +245,7 @@ public class Main {
     }
 
     private static int askAltas(){
-        System.out.println("¿Cuántas altas quieres hacer?");
+        System.out.println("¿Cuántas altas quieres hacer? [0] Para salir");
         return askNumber('a');
     }
 
@@ -174,25 +255,22 @@ public class Main {
         String estudio = checkStr('e');
         int anio = checkInt();
         Videojuego v1 = new Videojuego(cont,nombre,estudio,anio);
-        Document videojuego = new Document("_id",v1.getId())
+        return new Document("_id",v1.getId())
                 .append("nombre",v1.getNombre())
                 .append("estudio",v1.getEstudio())
                 .append("anio",v1.getAnio());
-        return videojuego;
     }
     private static String checkStr(char opc){
         String str = "";
         boolean check = true;
         while(check){
             try {
-                switch(opc){
-                    case 't':{
+                switch (opc) {
+                    case 't' -> {
                         System.out.println("Por favor, introduce el título del videojuego");
-                        break;
                     }
-                    case 'e':{
+                    case 'e' -> {
                         System.out.println("Por favor, introduce el estudio desarrollador del videojuego");
-                        break;
                     }
                 }
                 str = scStr.nextLine();
@@ -201,14 +279,12 @@ public class Main {
                 }
             }
             catch(Exception e){
-                switch(opc){
-                    case 't':{
+                switch (opc) {
+                    case 't' -> {
                         System.out.println("Por favor, introduce un título dentro de lo razonable ;)");
-                        break;
                     }
-                    case 'e':{
+                    case 'e' -> {
                         System.out.println("Por favor, introduce un estudio dentro de lo razonable ;)");
-                        break;
                     }
                 }
 
@@ -241,6 +317,7 @@ public class Main {
         if (num > 1){
             List<Document> videojuegos = new ArrayList<>();
             for(int i = 0; i< num;i++){
+                System.out.println("Videojuego "+(i+1)+": ");
                 videojuegos.add(createVideojuego());
             }
             mco.insertMany(videojuegos);
@@ -253,12 +330,13 @@ public class Main {
         }
     }
 
-    private static void muestraVideojuegos(){
+    private static void muestraVideojuegos(String sort){
         Document filtro = new Document();
-        FindIterable docIt = mco.find(filtro);
+        FindIterable docIt = mco.find(filtro).sort(Sorts.ascending(sort));
         Iterator it = docIt.iterator();
         int id,anio;
         String nombre,estudio;
+        System.out.println("Lista de videojuegos: ");
         for(int i = 1;it.hasNext();i++){
             Document videojuego = (Document)it.next();
             id = videojuego.getInteger("_id");
@@ -283,8 +361,8 @@ public class Main {
         }
         else{
             boolean continuasion = true;
-            muestraVideojuegos();
-            System.out.println("¿Qué videojuego quieres editar?");
+            muestraVideojuegos("_id");
+            System.out.println("¿Qué videojuego quieres editar? [0] Para salir");
             int edit = askNumber('e');
             if(edit != 0){
                 Document search = new Document("_id",edit);
