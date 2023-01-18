@@ -4,6 +4,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 import org.bson.Document;
@@ -51,7 +52,7 @@ public class Main {
                     break;
                 }
                 case 3:{
-                    //delete();
+                    delete();
                     break;
                 }
                 case 4:{
@@ -90,6 +91,32 @@ public class Main {
                 "2.- Editar Videojuego\n" +
                 "3.- Eliminar Videojuego");
     }
+
+    private static void delete(){
+        muestraVideojuegos();
+        System.out.println("¿Qué videojuego quieres borrar?");
+        int delete = askNumber('d');
+        if(delete != 0){
+            if(checkIfExists(delete)){
+                mco.deleteOne(Filters.eq("_id",delete));
+                System.out.println("Borrado satisfactoriamente.");
+            }
+            else{
+                System.out.println("NO EXISTE ESE ID, NO ME HAGAS PERDER EL TIEMPO, BRIBÓN");
+            }
+        }
+    }
+
+    private static boolean checkIfExists(int find){
+        boolean exists = true;
+        long count = mco.countDocuments(new Document("_id",find));
+        if (count == 0){
+            return !exists;
+        }
+        else{
+            return exists;
+        }
+    }
     private static int askNumber(char var){
         int num = -1;
         while(num <1){
@@ -115,6 +142,9 @@ public class Main {
                     }
                     case 'e':{
                         System.out.println("PERO A VER... ¿QUÉ QUIERES MODIFICAR?");
+                    }
+                    case 'd':{
+                        System.out.println("PERO A VER... ¿QUÉ QUIERES BORRAR?");
                     }
                 }
                 scNum.nextLine();
