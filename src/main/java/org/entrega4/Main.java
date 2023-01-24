@@ -11,13 +11,13 @@ import org.bson.Document;
 import java.util.*;
 
 public class Main {
-    static Scanner scNum = new Scanner(System.in);
-    static Scanner scStr = new Scanner(System.in);
+    static Scanner scan = new Scanner(System.in);
     static MongoClient mc;
     static MongoDatabase mdb;
     static MongoCollection mco;
     static int cont = 0;
 
+    //Devuelve el número de items registrados en la base de datos
     private static int checkItems(){
         int num = 0;
         Document sort = new Document("_id",-1);
@@ -33,14 +33,12 @@ public class Main {
         mdb = mc.getDatabase("videojuegos");
         mco = mdb.getCollection("videojuego");
         cont = checkItems();
-        /*mc = new MongoClient();
-        mdb = mc.getDatabase("videojuegos");
-        mco = mdb.getCollection("videojuego");*/
         int menu;
         showBanner();
         while(true){
             askMenu();
             menu = askNumber('m');
+
             switch (menu) {
                 case 1 -> alta();
                 case 2 -> edit();
@@ -56,7 +54,7 @@ public class Main {
             }
         }
     }
-
+    //Banner de inicio
     private static void showBanner(){
         System.out.println("8888888888          888                                                    888     888 88888888888            d8888");
         System.out.println("888                 888                                                    888     888     888               d8P888");
@@ -71,7 +69,7 @@ public class Main {
         System.out.println("                                             \"Y88P\"");
         System.out.println("####################################################################################################################");
     }
-
+    //Menú principal
     private static void askMenu(){
         System.out.println("Elige una opción:\n" +
                 "1.- Añadir Videojuego\n" +
@@ -81,7 +79,7 @@ public class Main {
                 "5.- Edición especial\n" +
                 "0.- Salir");
     }
-
+    //Método de borrar
     private static void delete(){
         if(checkItems() == 0){
             System.out.println("No hay videojuegos para eliminar, introduce uno primero.");
@@ -99,6 +97,7 @@ public class Main {
             }
         }
     }
+    //Ediciones especiales
     private static void specialedit(){
         System.out.println("""
                 Ediciones especiales:
@@ -116,6 +115,7 @@ public class Main {
             }
         }
     }
+    //Método de búsqueda
     private static void search(){
         System.out.println("""
                 Motor de Búsqueda:
@@ -126,9 +126,12 @@ public class Main {
                 5.- Mostrar la media de años de los juegos en la base de datos""");
         int menu = askNumber('m');
         switch(menu){
+            //Muestra videojuegos ordenados por _id
             case 1 -> muestraVideojuegos("_id");
+            //Muestra videojuegos ordenados por año
             case 2 -> muestraVideojuegos("anio");
             case 3 -> {
+                //Muestra los videojuegos lanzados después del año 2000
                 Document filtro = new Document("anio",new Document("$gt",2000));
                 FindIterable docIt = mco.find(filtro);
                 Iterator it = docIt.iterator();
@@ -149,6 +152,7 @@ public class Main {
                 }
             }
             case 4 -> {
+                //Mostrar el videojuego más antiguo y el más nuevo
                 AggregateIterable<Document> result = mco.aggregate(List.of(
                         Aggregates.group(null,
                                 Accumulators.max("maxAnio", "$anio"),
@@ -160,6 +164,7 @@ public class Main {
                 }
             }
             case 5 -> {
+                //Mostrar la media de años de los juegos en la base de datos
                 AggregateIterable<Document> result = mco.aggregate(Arrays.asList(
                         Aggregates.project(Projections.fields(
                                 Projections.computed("tiempo_lanzado", new Document("$subtract", Arrays.asList(2023, "$anio")))
@@ -175,7 +180,7 @@ public class Main {
             default -> System.out.println("Vale, veo que no quieres hacer nada, no pasa nada, nos veremos las caras en otro momento.");
         }
     }
-
+    //Comprobar si existe el id
     private static boolean checkIfExists(int find){
         boolean exists = true;
         long count = mco.countDocuments(new Document("_id",find));
@@ -186,11 +191,13 @@ public class Main {
             return exists;
         }
     }
+    //Método que pregunta números
     private static int askNumber(char var){
         int num = -1;
         while(num <1){
             try {
-                num = scNum.nextInt();
+                num = scan.nextInt();
+                scan.nextLine();
                 if (num < 0) {
                     System.out.println("Por favor, introduce un número dentro de lo razonable ;)");
                 }
@@ -200,33 +207,31 @@ public class Main {
                 }
             }
             catch(Exception e){
-                switch(var){
-                    case 'a':{
+                switch (var) {
+                    case 'a' -> {
                         System.out.println("DIJE... ¿CUÁNTAS ALTAS QUIERES HACER?");
-                        break;
                     }
-                    case 'm':{
+                    case 'm' -> {
                         System.out.println("DIJE... ¿QUÉ OPCIÓN DEL MENÚ QUIERES?");
-                        break;
                     }
-                    case 'e':{
+                    case 'e' -> {
                         System.out.println("PERO A VER... ¿QUÉ QUIERES MODIFICAR?");
                     }
-                    case 'd':{
+                    case 'd' -> {
                         System.out.println("PERO A VER... ¿QUÉ QUIERES BORRAR?");
                     }
                 }
-                scNum.nextLine();
+                scan.nextLine();
             }
         }
         return num;
     }
-
+    //Método que devuelve el número entero de altas
     private static int askAltas(){
         System.out.println("¿Cuántas altas quieres hacer? [0] Para salir");
         return askNumber('a');
     }
-
+    //Forma de creación de videojuego
     private static Document createVideojuego(){
         cont++;
         String nombre = checkStr('t');
@@ -238,6 +243,7 @@ public class Main {
                 .append("estudio",v1.getEstudio())
                 .append("anio",v1.getAnio());
     }
+    //Comprueba el string introducido
     private static String checkStr(char opc){
         String str = "";
         boolean check = true;
@@ -247,7 +253,7 @@ public class Main {
                     case 't' -> System.out.println("Por favor, introduce el título del videojuego");
                     case 'e' -> System.out.println("Por favor, introduce el estudio desarrollador del videojuego");
                 }
-                str = scStr.nextLine();
+                str = scan.nextLine();
                 if (str.length()>0){
                     check = false;
                 }
@@ -262,24 +268,29 @@ public class Main {
         }
         return str;
     }
+    //Comprueba el número entero introducido
     private static int checkInt(){
         int num = 0;
         while(num <1){
             try {
                 System.out.println("Por favor, introduce el año de lanzamiento del videojuego");
-                num = scNum.nextInt();
+                num = scan.nextInt();
+                scan.nextLine();
                 if (num < 1) {
                     System.out.println("Por favor, introduce un año dentro de lo razonable ;)");
                 }
+
             }
             catch(Exception e){
                 System.out.println("Por favor, introduce un año dentro de lo razonable ;)");
-                scNum.nextLine();
+                scan.nextLine();
             }
         }
         return num;
 
     }
+
+    //Dar de alta un videojuego
     private static void alta(){
 
         int num = askAltas();
@@ -299,7 +310,7 @@ public class Main {
 
         }
     }
-
+    //Mostrar por pantalla los videojuegos en la base de datos
     private static void muestraVideojuegos(String sort){
         Document filtro = new Document();
         FindIterable docIt = mco.find(filtro).sort(Sorts.ascending(sort));
@@ -325,6 +336,7 @@ public class Main {
             System.out.println(v1);
         }*/
     }
+    //Método que edita un videojuego
     private static void edit(){
         if(checkItems() == 0){
             System.out.println("No hay videojuegos para editar, introduce uno primero.");
@@ -343,7 +355,7 @@ public class Main {
                 System.out.println(v1);
                 while(continuasion){
                     System.out.println("¿Qué quieres editar? [nombre],[estudio],[año],[salir]");
-                    char ask = scStr.nextLine().toUpperCase().charAt(0);
+                    char ask = scan.nextLine().toUpperCase().charAt(0);
                     switch(ask){
                         case 'N':{
                             String nombre = checkStr('t');
